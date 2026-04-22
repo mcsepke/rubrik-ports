@@ -1,798 +1,843 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rubrik Firewall Port Planner</title>
-<meta name="description" content="Interactive tool to determine the firewall ports required for a Rubrik deployment based on the workloads and services you're protecting.">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rubrik Firewall Port Requirements Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* Rubrik-inspired palette — green→teal→blue gradient identity */
-    --rubrik-green: #00B140;
-    --rubrik-teal: #00A2B4;
-    --rubrik-blue: #0072CE;
-    --rubrik-navy: #002E5D;
-    --rubrik-navy-deep: #001733;
-    --rubrik-gradient: linear-gradient(135deg, #00B140 0%, #00A2B4 45%, #0072CE 100%);
-    --rubrik-gradient-soft: linear-gradient(135deg, #E6F7EC 0%, #E0F4F7 50%, #E0EEF9 100%);
-
-    --bg: #ffffff;
-    --bg-page: #F5F8FA;
-    --bg-secondary: #F0F4F7;
-    --text-primary: #002E5D;
-    --text-secondary: #4A6177;
-    --text-tertiary: #7D92A4;
-    --border: #D9E3EC;
-    --border-hover: #B4C7D6;
-    --accent: var(--rubrik-blue);
-    --accent-bg: #E0EEF9;
-    --accent-border: var(--rubrik-blue);
-    --accent-text: var(--rubrik-navy);
-
-    --in-bg: #E0EEF9;
-    --in-text: #004A9E;
-    --in-border: #B1D1EE;
-    --out-bg: #E6F7EC;
-    --out-text: #006B27;
-    --out-border: #A8DDB8;
-    --bi-bg: #E0F4F7;
-    --bi-text: #00596B;
-    --bi-border: #A8D8E0;
-
-    --radius-md: 6px;
-    --radius-lg: 10px;
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    --shadow-sm: 0 1px 2px rgba(0, 46, 93, 0.06);
-    --shadow-md: 0 4px 12px rgba(0, 46, 93, 0.08);
-    --shadow-lg: 0 8px 32px rgba(0, 46, 93, 0.12);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0A1929;
-      --bg-page: #001733;
-      --bg-secondary: #102A42;
-      --text-primary: #E8F1FA;
-      --text-secondary: #9FB5C9;
-      --text-tertiary: #6B8299;
-      --border: #1E3A5C;
-      --border-hover: #2D5280;
-      --accent: #40A9E5;
-      --accent-bg: #0D2540;
-      --accent-border: #0072CE;
-      --accent-text: #B5D4F4;
-
-      --in-bg: #0D2540;
-      --in-text: #8BC2ED;
-      --in-border: #1E4270;
-      --out-bg: #0A3520;
-      --out-text: #6FD68E;
-      --out-border: #1A5A35;
-      --bi-bg: #0A3540;
-      --bi-text: #7DD5E4;
-      --bi-border: #1A5260;
-
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-    }
+    /* Rubrik brand palette */
+    --rubrik-green: #00B388;
+    --rubrik-green-dark: #008F6C;
+    --rubrik-green-light: #00D9A5;
+    --rubrik-blue: #00A3E0;
+    --rubrik-blue-dark: #005781;
+    --rubrik-teal: #0AC9BB;
+    --rubrik-orange: #FF6240;
+    --rubrik-ink: #022125;
+    --rubrik-ink-2: #0B2E33;
+    --rubrik-ink-3: #113A40;
+    --rubrik-gray-8: #63666A;   /* Pantone Cool Gray 8 */
+    --rubrik-gray-2: #D9D9D6;
+    --rubrik-off-white: #F5F7F8;
+    --shadow-sm: 0 1px 2px rgba(2, 33, 37, 0.08);
+    --shadow-md: 0 4px 12px rgba(2, 33, 37, 0.15);
+    --shadow-lg: 0 12px 40px rgba(2, 33, 37, 0.35);
   }
 
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
-  .hero {
-    background: var(--rubrik-gradient);
-    padding: 2rem 0 5rem;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero::before {
-    content: '';
-    position: absolute;
-    top: -100px; right: -100px;
-    width: 400px; height: 400px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  .hero::after {
-    content: '';
-    position: absolute;
-    bottom: -150px; left: -100px;
-    width: 350px; height: 350px;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  .hero-inner { max-width: 960px; margin: 0 auto; padding: 1rem 1.25rem; position: relative; z-index: 1; }
-  .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
-  .logo-mark {
-    width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .logo-mark svg { width: 100%; height: 100%; }
-  .logo-text { color: #fff; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
-  h1 { font-size: 32px; font-weight: 600; margin: 0 0 10px; color: #fff; letter-spacing: -0.02em; line-height: 1.15; }
-  .subtitle { font-size: 15px; color: rgba(255, 255, 255, 0.92); margin: 0; max-width: 620px; line-height: 1.55; }
-
-  .container { max-width: 960px; margin: -3rem auto 0; padding: 0 1.25rem 4rem; position: relative; z-index: 2; }
-
-  .panel {
-    background: var(--bg);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    padding: 1.75rem 1.75rem 1.5rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border);
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(0, 179, 136, 0.08), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(0, 163, 224, 0.08), transparent 40%),
+      linear-gradient(180deg, #061A1E 0%, #022125 100%);
+    color: #E8EEF0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
   }
 
-  .section { margin-bottom: 1.5rem; }
-  .section:last-child { margin-bottom: 0.5rem; }
-
-  .section-title {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin: 0 0 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .section-title::before {
-    content: '';
-    width: 14px;
-    height: 3px;
-    border-radius: 2px;
-  }
-  .section-workloads .section-title::before { background: var(--rubrik-green); }
-  .section-management .section-title::before { background: var(--rubrik-teal); }
-  .section-cloud .section-title::before { background: var(--rubrik-blue); }
-  .section-intra .section-title::before { background: var(--rubrik-navy); }
-
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
-
-  .chk {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 11px 13px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--bg);
-    cursor: pointer;
-    font-size: 13px;
-    line-height: 1.4;
-    transition: all 0.15s ease;
-    user-select: none;
-    position: relative;
-  }
-  .chk:hover {
-    background: var(--bg-secondary);
-    border-color: var(--border-hover);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-  }
-  .chk input {
-    margin: 2px 0 0;
-    cursor: pointer;
-    flex-shrink: 0;
-    width: 15px;
-    height: 15px;
-  }
-  .section-workloads .chk input { accent-color: var(--rubrik-green); }
-  .section-management .chk input { accent-color: var(--rubrik-teal); }
-  .section-cloud .chk input { accent-color: var(--rubrik-blue); }
-  .section-intra .chk input { accent-color: var(--rubrik-navy); }
-
-  .section-workloads .chk.checked { background: var(--out-bg); border-color: var(--rubrik-green); }
-  .section-management .chk.checked { background: var(--bi-bg); border-color: var(--rubrik-teal); }
-  .section-cloud .chk.checked { background: var(--in-bg); border-color: var(--rubrik-blue); }
-  .section-intra .chk.checked { background: var(--accent-bg); border-color: var(--rubrik-navy); }
-
-  .chk-label { flex: 1; min-width: 0; color: var(--text-primary); }
-  .chk.checked .chk-label { font-weight: 500; }
-
-  .actions {
-    display: flex;
-    gap: 8px;
-    margin: 0 0 1rem;
-    flex-wrap: wrap;
-  }
-  .btn {
-    font-size: 13px;
-    padding: 8px 14px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-hover);
-    background: var(--bg);
-    color: var(--text-primary);
-    cursor: pointer;
-    font-family: inherit;
-    font-weight: 500;
-    transition: all 0.15s ease;
-  }
-  .btn:hover { background: var(--bg-secondary); border-color: var(--rubrik-blue); color: var(--rubrik-blue); }
-  .btn-primary {
-    background: var(--rubrik-gradient);
-    color: #fff;
-    border-color: transparent;
-    box-shadow: 0 2px 8px rgba(0, 114, 206, 0.25);
-  }
-  .btn-primary:hover {
-    color: #fff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0, 114, 206, 0.35);
-    border-color: transparent;
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
   }
 
-  .summary {
-    background: var(--bg);
-    border-radius: var(--radius-lg);
-    padding: 1.75rem 1.75rem 1.5rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border);
-    position: relative;
-    overflow: hidden;
-  }
-  .summary::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--rubrik-gradient);
-  }
-
-  .summary-head {
+  /* ============ HEADER ============ */
+  header {
+    padding: 22px 36px;
+    background: linear-gradient(90deg, rgba(2,33,37,0.9), rgba(11,46,51,0.7));
+    border-bottom: 1px solid rgba(0, 179, 136, 0.2);
+    backdrop-filter: blur(8px);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 0 0 16px;
-    gap: 12px;
     flex-wrap: wrap;
-    padding-top: 4px;
+    gap: 16px;
   }
-  .summary-title {
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    background: var(--rubrik-green);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: var(--rubrik-ink);
+    font-size: 18px;
+    box-shadow: 0 0 24px rgba(0, 179, 136, 0.4);
+  }
+
+  .title-block h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .title-block .sub {
+    font-size: 12px;
+    color: var(--rubrik-gray-2);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 28px;
+  }
+
+  .stat {
+    text-align: right;
+  }
+
+  .stat .num {
+    font-family: 'JetBrains Mono', monospace;
     font-size: 20px;
     font-weight: 600;
-    margin: 0;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-  }
-  .count-badge {
-    background: var(--rubrik-gradient);
-    color: #fff;
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    box-shadow: 0 2px 6px rgba(0, 114, 206, 0.25);
+    color: var(--rubrik-green);
   }
 
-  .head-row {
-    display: grid;
-    grid-template-columns: 1.1fr 1fr 1fr;
-    gap: 12px;
+  .stat .lbl {
     font-size: 10px;
-    color: var(--text-tertiary);
+    letter-spacing: 1px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 600;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--border);
-    margin-bottom: 10px;
+    color: var(--rubrik-gray-2);
+    opacity: 0.7;
   }
-  .head-row div:nth-child(2) { color: var(--in-text); }
-  .head-row div:nth-child(3) { color: var(--out-text); }
 
-  .row {
-    border-bottom: 1px solid var(--border);
-    padding: 12px 0;
+  /* ============ MAIN LAYOUT ============ */
+  main {
     display: grid;
-    grid-template-columns: 1.1fr 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 28px 36px;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  @media (max-width: 1100px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: rgba(11, 46, 51, 0.55);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+  }
+
+  .panel h2 {
     font-size: 13px;
-    align-items: start;
-  }
-  .row:last-child { border-bottom: none; }
-  .row-service { font-weight: 500; color: var(--text-primary); }
-  .ports {
-    color: var(--text-secondary);
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    white-space: pre-wrap;
-    line-height: 1.6;
-  }
-
-  .empty {
-    font-size: 14px;
-    color: var(--text-secondary);
-    padding: 1.5rem 1rem;
-    text-align: center;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    border: 1px dashed var(--border-hover);
-  }
-  .empty-icon { font-size: 32px; display: block; margin-bottom: 8px; opacity: 0.6; color: var(--rubrik-teal); }
-
-  .consolidated {
-    margin-top: 24px;
-    padding: 18px;
-    background: var(--rubrik-gradient-soft);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-  }
-  @media (prefers-color-scheme: dark) {
-    .consolidated { background: var(--bg-secondary); }
-  }
-  .consolidated h3 {
-    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--rubrik-green);
+    margin: 0 0 4px 0;
     font-weight: 600;
-    margin: 0 0 14px;
-    color: var(--text-primary);
   }
 
-  .pill {
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 14px;
-    font-family: var(--font-mono);
-    display: inline-block;
+  .panel .panel-sub {
+    font-size: 13px;
+    color: var(--rubrik-gray-2);
+    opacity: 0.8;
+    margin-bottom: 20px;
+  }
+
+  /* ============ CATEGORY GROUPS ============ */
+  .group {
+    margin-bottom: 22px;
+  }
+
+  .group-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--rubrik-blue);
+    padding: 6px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 163, 224, 0.2);
+  }
+
+  .options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+
+  .opt {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(2,33,37,0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+  }
+
+  .opt:hover {
+    border-color: rgba(0, 179, 136, 0.5);
+    background: rgba(0, 179, 136, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .opt.active {
+    background: linear-gradient(135deg, rgba(0, 179, 136, 0.22), rgba(0, 163, 224, 0.12));
+    border-color: var(--rubrik-green);
+    box-shadow: 0 0 0 1px rgba(0, 179, 136, 0.4), 0 4px 14px rgba(0, 179, 136, 0.2);
+  }
+
+  .opt .check {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s;
+  }
+
+  .opt.active .check {
+    background: var(--rubrik-green);
+    border-color: var(--rubrik-green);
+  }
+
+  .opt.active .check::after {
+    content: '';
+    width: 4px;
+    height: 8px;
+    border: solid var(--rubrik-ink);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+
+  .opt .lbl {
+    font-size: 13px;
     font-weight: 500;
-    border: 1px solid transparent;
+    color: #E8EEF0;
   }
-  .pill-in { background: var(--in-bg); color: var(--in-text); border-color: var(--in-border); }
-  .pill-out { background: var(--out-bg); color: var(--out-text); border-color: var(--out-border); }
-  .pill-bi { background: var(--bi-bg); color: var(--bi-text); border-color: var(--bi-border); }
 
-  .pill-line {
+  /* ============ ACTION BAR ============ */
+  .action-bar {
     display: flex;
     gap: 10px;
-    align-items: flex-start;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
   }
-  .pill-line:last-child { margin-bottom: 0; }
-  .pill-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    width: 100px;
-    flex-shrink: 0;
-    padding: 5px 0 0;
-  }
-  .pill-label.in { color: var(--in-text); }
-  .pill-label.out { color: var(--out-text); }
-  .pill-label.bi { color: var(--bi-text); }
-  .pill-wrap { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
 
-  .fqdn-note {
-    font-size: 12.5px;
-    color: var(--text-secondary);
-    margin: 16px 0 0;
-    padding: 14px 16px;
-    background: var(--bg);
-    border-left: 3px solid var(--rubrik-teal);
-    border-radius: var(--radius-md);
-    line-height: 1.9;
-  }
-  .fqdn-note strong {
-    color: var(--text-primary);
-    display: block;
-    margin-bottom: 8px;
+  .btn {
+    padding: 8px 14px;
+    border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    font-family: inherit;
   }
-  .fqdn-note code {
-    font-family: var(--font-mono);
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--rubrik-gray-2);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--rubrik-green);
+    color: var(--rubrik-green);
+  }
+
+  .btn-primary {
+    background: var(--rubrik-green);
+    color: var(--rubrik-ink);
+  }
+
+  .btn-primary:hover {
+    background: var(--rubrik-green-light);
+    box-shadow: 0 0 0 3px rgba(0, 179, 136, 0.25);
+  }
+
+  /* ============ PORT LIST ============ */
+  .port-panel {
+    position: relative;
+  }
+
+  .port-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .port-summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    background: rgba(0, 179, 136, 0.14);
+    color: var(--rubrik-green-light);
+    border: 1px solid rgba(0, 179, 136, 0.3);
+    border-radius: 999px;
+    font-weight: 500;
+  }
+
+  .chip.blue {
+    background: rgba(0, 163, 224, 0.14);
+    color: var(--rubrik-blue);
+    border-color: rgba(0, 163, 224, 0.3);
+  }
+
+  .chip.orange {
+    background: rgba(255, 98, 64, 0.14);
+    color: var(--rubrik-orange);
+    border-color: rgba(255, 98, 64, 0.3);
+  }
+
+  .port-list-wrap {
+    max-height: 560px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(2,33,37,0.6);
+  }
+
+  .port-list-wrap::-webkit-scrollbar { width: 8px; }
+  .port-list-wrap::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+  .port-list-wrap::-webkit-scrollbar-thumb {
+    background: rgba(0, 179, 136, 0.4);
+    border-radius: 4px;
+  }
+
+  table.ports {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  table.ports thead {
+    position: sticky;
+    top: 0;
+    background: var(--rubrik-ink-2);
+    z-index: 2;
+  }
+
+  table.ports th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--rubrik-green);
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(0, 179, 136, 0.25);
+  }
+
+  table.ports td {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: top;
+    color: #D6DEE0;
+  }
+
+  table.ports tbody tr {
+    transition: background 0.12s;
+  }
+
+  table.ports tbody tr:hover {
+    background: rgba(0, 179, 136, 0.05);
+  }
+
+  table.ports .port-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--rubrik-green);
+    white-space: nowrap;
+  }
+
+  table.ports .src-cell, table.ports .dst-cell {
+    white-space: pre-line;
+    font-size: 12px;
+    max-width: 180px;
+  }
+
+  table.ports .desc-cell {
     font-size: 11.5px;
-    color: var(--text-primary);
-    background: var(--bg-secondary);
+    color: #B8C4C7;
+    white-space: pre-line;
+    line-height: 1.45;
+  }
+
+  .category-badge {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 700;
     padding: 2px 7px;
     border-radius: 3px;
-    margin-right: 4px;
-    display: inline-block;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
   }
 
-  footer {
-    max-width: 960px;
-    margin: 2.5rem auto 0;
-    padding: 1.5rem 1.25rem 0;
-    border-top: 1px solid var(--border);
-    font-size: 12px;
-    color: var(--text-tertiary);
+  .badge-mgmt { background: rgba(0,163,224,0.18); color: var(--rubrik-blue); }
+  .badge-workload { background: rgba(0,179,136,0.18); color: var(--rubrik-green-light); }
+  .badge-archive { background: rgba(255,98,64,0.18); color: var(--rubrik-orange); }
+  .badge-replication { background: rgba(10,201,187,0.18); color: var(--rubrik-teal); }
+  .badge-registration { background: rgba(130,130,200,0.18); color: #9FA8DA; }
+
+  .empty {
+    padding: 80px 20px;
     text-align: center;
-    line-height: 1.6;
-  }
-  footer strong { color: var(--text-secondary); }
-
-  @media (max-width: 600px) {
-    .hero { padding: 1.5rem 0 4rem; }
-    h1 { font-size: 24px; }
-    .subtitle { font-size: 14px; }
-    .container { padding: 0 1rem 3rem; }
-    .panel, .summary { padding: 1.25rem 1.25rem 1rem; }
-    .row, .head-row { grid-template-columns: 1fr; }
-    .head-row { display: none; }
-    .row-service { font-size: 14px; margin-bottom: 4px; }
-    .ports::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 2px; }
-    .pill-label { width: 100%; padding-top: 0; margin-bottom: 6px; }
-    .pill-line { flex-direction: column; }
+    color: var(--rubrik-gray-8);
+    font-size: 13px;
   }
 
-  @media print {
-    html, body { background: #fff; }
-    .hero { background: none; color: #000; padding: 1rem 0; }
-    .hero::before, .hero::after { display: none; }
-    h1, .subtitle, .logo-text { color: #000; }
-    .actions, footer, .grid { display: none; }
-    .panel, .summary { box-shadow: none; border: 1px solid #000; }
-    .summary::before { display: none; }
-    .container { margin-top: 0; }
+  .empty svg {
+    margin-bottom: 14px;
+    opacity: 0.4;
   }
+
+  /* ============ FOOTER ============ */
+  footer {
+    text-align: center;
+    padding: 18px;
+    font-size: 11px;
+    color: var(--rubrik-gray-8);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    letter-spacing: 0.5px;
+  }
+
+  footer a { color: var(--rubrik-green); text-decoration: none; }
 </style>
 </head>
 <body>
+<div class="app">
 
-<div class="hero">
-  <div class="hero-inner">
-    <div class="logo-row">
-      <div class="logo-mark">
-        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#B4F0C6"/>
-              <stop offset="100%" stop-color="#FFFFFF"/>
-            </linearGradient>
-          </defs>
-          <path d="M20 4 L32 11 L32 25 L20 32 L8 25 L8 11 Z" fill="url(#heroGrad)" opacity="0.95"/>
-          <g stroke="#00A2B4" stroke-width="1.5" fill="none" opacity="0.9">
-            <path d="M20 11 L20 25 M14 14.5 L26 21.5 M26 14.5 L14 21.5"/>
-          </g>
-        </svg>
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="logo-mark">R</div>
+      <div class="title-block">
+        <h1>Firewall Port Planner</h1>
+        <div class="sub">Rubrik Cluster · Port Requirements Dashboard</div>
       </div>
-      <span class="logo-text">Rubrik · Firewall Planner</span>
     </div>
-    <h1>Firewall Port Planner</h1>
-    <p class="subtitle">Select the workloads, management services, cloud targets, and cluster features you're deploying. The summary below shows exactly which firewall ports you need to open, grouped and deduplicated by direction.</p>
-  </div>
+    <div class="header-stats">
+      <div class="stat">
+        <div class="num" id="statSel">0</div>
+        <div class="lbl">Components Selected</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="statPorts">0</div>
+        <div class="lbl">Ports Required</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="statRules">0</div>
+        <div class="lbl">Firewall Rules</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- LEFT: Selection panel -->
+    <section class="panel">
+      <h2>Configuration Builder</h2>
+      <div class="panel-sub">Select the Rubrik functions, workloads, and integrations present in your environment.  The port list on the right will update in real time.</div>
+
+      <div class="action-bar">
+        <button class="btn btn-primary" id="selectDefaults">Recommended Defaults</button>
+        <button class="btn btn-ghost" id="selectAll">Select All</button>
+        <button class="btn btn-ghost" id="clearAll">Clear</button>
+      </div>
+
+      <!-- Rubrik Functions -->
+      <div class="group">
+        <div class="group-title">◆ Rubrik Cluster Functions</div>
+        <div class="options" id="grp-functions"></div>
+      </div>
+
+      <!-- Workloads -->
+      <div class="group">
+        <div class="group-title">◆ Protected Workloads</div>
+        <div class="options" id="grp-workloads"></div>
+      </div>
+
+      <!-- Archive targets -->
+      <div class="group">
+        <div class="group-title">◆ Archive Targets</div>
+        <div class="options" id="grp-archive"></div>
+      </div>
+
+      <!-- Integrations / other -->
+      <div class="group">
+        <div class="group-title">◆ Integrations &amp; Services</div>
+        <div class="options" id="grp-integrations"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Port list -->
+    <section class="panel port-panel">
+      <div class="port-panel-head">
+        <div>
+          <h2>Required Ports &amp; Firewall Rules</h2>
+          <div class="panel-sub">Live-generated from your selections above.</div>
+        </div>
+        <button class="btn btn-ghost" id="exportCsv">⬇ Export CSV</button>
+      </div>
+
+      <div class="port-summary" id="portSummary"></div>
+
+      <div class="port-list-wrap">
+        <table class="ports" id="portTable">
+          <thead>
+            <tr>
+              <th style="width:120px;">Port</th>
+              <th>Source</th>
+              <th>Destination</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody id="portBody">
+            <tr><td colspan="4" class="empty">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/>
+              </svg>
+              <div>Select at least one component to generate your port list.</div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    Port data sourced from Rubrik Cluster Port Requirements reference ·
+    <span style="color: var(--rubrik-green);">Always verify requirements against your installed CDM version.</span>
+  </footer>
 </div>
-
-<div class="container">
-  <div class="panel">
-    <div id="sections"></div>
-
-    <div class="actions">
-      <button class="btn" id="btn-clear">Clear all</button>
-      <button class="btn" id="btn-mgmt">Select core management</button>
-      <button class="btn" id="btn-intra">Include intra-cluster</button>
-      <button class="btn" id="btn-print">Print / Save PDF</button>
-      <button class="btn btn-primary" id="btn-copy">Copy port list</button>
-    </div>
-  </div>
-
-  <section class="summary" id="summary">
-    <div class="summary-head">
-      <h2 class="summary-title">Required firewall ports</h2>
-      <span class="count-badge"><span id="count">0</span> selected</span>
-    </div>
-    <div id="body"></div>
-  </section>
-</div>
-
-<footer>
-  <strong>Rubrik Firewall Port Planner</strong><br>
-  Port data sourced from Rubrik Pre-Req documentation. This tool is a planning aid — always verify against your current Rubrik release notes before opening firewall rules in production.<br>
-  Not affiliated with or endorsed by Rubrik, Inc.
-</footer>
 
 <script>
-const DATA = {
-  "Workloads": [
-    { s: "VMware vCenter or vCD", in: "", out: "TCP 443" },
-    { s: "VMware ESXi hosts", in: "TCP 111, 1514, 2049, 12500, 32764-32769\nUDP 2049, 32764-32769", out: "TCP 443, 902" },
-    { s: "Windows, Hyper-V & SQL Hosts (RBS)", in: "TCP 139, 445\nUDP 137, 138", out: "TCP 12800, 12801" },
-    { s: "Linux, AIX, Solaris Hosts (RBS)", in: "", out: "TCP 12800, 12801" },
-    { s: "Prism Central", in: "", out: "TCP 9440" },
-    { s: "Nutanix Hosts", in: "TCP/UDP 111, 2049, 32764-32769", out: "TCP 3260, 3205, 860, 9440" },
-    { s: "Oracle hosts (RBS)", in: "TCP 111, 2049, 12500, 32764-32769\nUDP 111, 2049, 32764-32769", out: "TCP 12800, 12801" },
-    { s: "Managed Volumes (NFS)", in: "TCP 111, 2049, 32764-32769\nUDP 111, 2049, 32764-32769", out: "" },
-    { s: "SMB / NAS", in: "TCP 139, 445\nUDP 137, 138", out: "" },
-    { s: "NFS / NAS", in: "TCP 32764-32769\nUDP 32764-32769", out: "" }
+/* ====================================================================
+   PORT DATABASE
+   Each rule is tagged with one or more "requires" keys. A rule is
+   included in the output if ANY of its required keys is selected.
+   ==================================================================== */
+
+const OPTIONS = {
+  functions: [
+    { key: 'registration', label: 'Cluster Registration to RSC' },
+    { key: 'management',   label: 'Management / Admin Access' },
+    { key: 'replication',  label: 'Cluster Replication' },
   ],
-  "Management": [
-    { s: "SSH", in: "TCP 22", out: "" },
-    { s: "Web UI (client web browser)", in: "TCP 80, 443", out: "" },
-    { s: "NTP", in: "", out: "UDP 123" },
-    { s: "DNS", in: "", out: "UDP 53" },
-    { s: "SMTP", in: "", out: "TCP 25, 465 and/or 587" },
-    { s: "SNMP", in: "UDP 161", out: "UDP 162" },
-    { s: "Syslog", in: "", out: "TCP 514" },
-    { s: "AD / LDAP", in: "", out: "TCP 88, 389, 445, 464, 636, 3268, 3269\nUDP 88, 464" },
-    { s: "Isilon NAS API", in: "", out: "TCP 8080" },
-    { s: "NetApp NAS API", in: "", out: "TCP 443" }
+  workloads: [
+    { key: 'vmware',    label: 'VMware vSphere' },
+    { key: 'nutanix',   label: 'Nutanix AHV' },
+    { key: 'hyperv',    label: 'Microsoft Hyper-V' },
+    { key: 'mssql',     label: 'MS-SQL Database' },
+    { key: 'oracle',    label: 'Oracle Database' },
+    { key: 'db2',       label: 'IBM DB2 Database' },
+    { key: 'saphana',   label: 'SAP HANA Database' },
+    { key: 'nas',       label: 'NAS (NetApp / Isilon / Pure)' },
+    { key: 'winhost',   label: 'Physical Windows Host' },
+    { key: 'nixhost',   label: 'Physical Linux/AIX/Solaris' },
   ],
-  "Internet / Cloud": [
-    { s: "Rubrik Security Cloud (RSC)", in: "", out: "TCP 443 to:\n- <customer>.my.rubrik.com\n- proxy.rubrik.com\n- cdn.rsc.rubrik.com" },
-    { s: "Rubrik Support", in: "", out: "TCP 443 to:\n- proxy.rubrik.com\n- apollo-ingest.s3.amazonaws.com\n- rubrikstats.s3.amazonaws.com" },
-    { s: "CloudOut Archival to S3 (Cloudian)", in: "", out: "TCP 443 to the Cloudian URL" },
-    { s: "CloudOut Archival to NFS", in: "", out: "TCP 2049" },
-    { s: "CloudOut Archival to AWS", in: "", out: "TCP 443 to S3:\n- s3.<region>.amazonaws.com\n- kms.<region>.amazonaws.com" },
-    { s: "CloudOut Archival to Azure", in: "", out: "TCP 443 to Blob Storage Account:\n- <blob-acct>.blob.core.windows.net" },
-    { s: "CloudOut Archival to GCP", in: "", out: "TCP 443 to GCP Storage:\n- storage.cloud.google.com\n- storage.googleapis.com" }
+  archive: [
+    { key: 'azure',  label: 'Azure Blob Storage' },
+    { key: 'aws',    label: 'AWS S3' },
+    { key: 'gcp',    label: 'Google Cloud Storage' },
+    { key: 'nfs',    label: 'NFS Archive' },
+    { key: 's3compat', label: 'S3-Compatible Object Store' },
+    { key: 'azurekv',  label: 'Azure Key Vault (EAR)' },
   ],
-  "Intra-Cluster Communication": [
-    { s: "Rubrik Data Vault Nodes (between nodes)", bi: "TCP 1515, 1516, 2013, 2014, 2015, 2200, 5766, 5767, 7096, 7780, 7781, 7784, 7785, 7790, 8081, 8082, 8086, 9638, 10000-10003, 26257\nUDP 123, 137, 5353" },
-    { s: "Rubrik Data Vault Replication", bi: "TCP 7785" },
-    { s: "HotAdd Proxy (optional, Proxy VM subnet to Rubrik nodes)", bi: "TCP 8077, 58000" }
-  ]
+  integrations: [
+    { key: 'ad',      label: 'Active Directory' },
+    { key: 'smtp',    label: 'SMTP / Email Alerts' },
+    { key: 'support', label: 'Rubrik Support Tunnel' },
+  ],
 };
 
-const SECTION_CLASS = {
-  "Workloads": "section-workloads",
-  "Management": "section-management",
-  "Internet / Cloud": "section-cloud",
-  "Intra-Cluster Communication": "section-intra"
-};
+/* Port rule records — sourced from the Firewall spreadsheet. */
+const PORTS = [
+  /* ---------- Cluster Registration ---------- */
+  { port: '443', src: 'Rubrik cluster', dst: 'https://<subdomain>.my.rubrik.com', desc: 'Allows the Rubrik cluster to communicate with Rubrik Security Cloud (RSC).', cat: 'registration', req: ['registration'] },
+  { port: '80',  src: "User Desktop's web browser", dst: 'https://<IP of cluster>', desc: 'Allows a Rubrik user to access the appliance to register to RSC.', cat: 'registration', req: ['registration'] },
+  { port: '80',  src: "User Desktop's web browser", dst: 'https://<subdomain>.my.rubrik.com\nhttps://cdn-rsc.rubrik.com/', desc: 'Allows the Rubrik user to access the SaaS platform.', cat: 'registration', req: ['registration'] },
 
-const selected = new Set();
+  /* ---------- Management (always-on basics) ---------- */
+  { port: '22 TCP',       src: 'User Desktop',   dst: 'Rubrik cluster', desc: 'SSH access for administration.', cat: 'management', req: ['management'] },
+  { port: '80, 443 TCP',  src: 'User Desktop',   dst: 'Rubrik cluster', desc: 'Web UI (client web browser).', cat: 'management', req: ['management'] },
+  { port: '123 UDP',      src: 'Rubrik cluster', dst: 'NTP Server',     desc: 'Network time protocol (NTP) for time synchronization.', cat: 'management', req: ['management'] },
+  { port: '53 UDP',       src: 'Rubrik cluster', dst: 'DNS Server',     desc: 'Permits hostname resolution.', cat: 'management', req: ['management'] },
+
+  /* ---------- Active Directory ---------- */
+  { port: '389 TCP',      src: 'Rubrik Cluster', dst: 'Active Directory Server',         desc: 'LDAP for SMB security and LDAP servers.', cat: 'registration', req: ['ad'] },
+  { port: '464 TCP/UDP',  src: 'Rubrik Cluster', dst: 'Active Directory Server',         desc: 'Kerberos password set/change for SMB security.', cat: 'registration', req: ['ad'] },
+  { port: '636 TCP',      src: 'Rubrik Cluster', dst: 'Active Directory Server',         desc: 'Secure LDAP (LDAPS) for SMB security and LDAP servers.', cat: 'registration', req: ['ad'] },
+  { port: '3268 TCP',     src: 'Rubrik Cluster', dst: 'AD Global Catalog Server',        desc: 'LDAP for SMB security and LDAP servers.', cat: 'registration', req: ['ad'] },
+  { port: '3269 TCP',     src: 'Rubrik Cluster', dst: 'AD Global Catalog Server',        desc: 'Secure LDAP (LDAPS) for SMB security and LDAP servers.', cat: 'registration', req: ['ad'] },
+  { port: '88 TCP/UDP',   src: 'Rubrik Cluster', dst: 'AD Host',                         desc: 'Kerberos communication for SMB security.', cat: 'registration', req: ['ad'] },
+  { port: '137-139',      src: 'AD Host',        dst: 'Rubrik Cluster',                  desc: 'NTLM authentication.', cat: 'registration', req: ['ad'] },
+  { port: '445',          src: 'Rubrik Cluster, AD Host', dst: 'Rubrik Cluster, AD Host', desc: 'SMB Mount.', cat: 'registration', req: ['ad'] },
+
+  /* ---------- VMware ---------- */
+  { port: '111 UDP',         src: 'VMware ESXi hosts', dst: 'Rubrik Cluster', desc: 'Provides an NFS datastore for ESXi hosts.', cat: 'workload', req: ['vmware'] },
+  { port: '111 TCP',         src: 'VMware ESXi hosts', dst: 'Rubrik Cluster', desc: 'Provides an NFS datastore for ESXi hosts.', cat: 'workload', req: ['vmware'] },
+  { port: '902 TCP',         src: 'Rubrik Cluster',    dst: 'VMware ESXi hosts', desc: 'Network block device (NBD) data transfers.', cat: 'workload', req: ['vmware'] },
+  { port: '2049 TCP/UDP',    src: 'VMware ESXi hosts', dst: 'Rubrik Cluster', desc: 'NFS daemon contact for Live Mount operations.', cat: 'workload', req: ['vmware'] },
+  { port: '32764-32769 TCP/UDP', src: 'VMware ESXi hosts', dst: 'Rubrik Cluster', desc: 'Provides an NFS datastore for ESXi hosts.', cat: 'workload', req: ['vmware'] },
+  { port: '443 TCP',         src: 'Rubrik cluster',    dst: 'VMware ESXi host / vCenter Server', desc: 'File level restore, information queries about VMs, pre/post-scripts.', cat: 'workload', req: ['vmware'] },
+
+  /* ---------- Nutanix AHV ---------- */
+  { port: '860 TCP/UDP',  src: 'Rubrik cluster', dst: 'iSCSI targets',   desc: 'iSCSI data transfers for Nutanix AHV.', cat: 'workload', req: ['nutanix'] },
+  { port: '2074 TCP',     src: 'Rubrik cluster', dst: 'Nutanix cluster', desc: 'Secure comm between Rubrik cluster and Nutanix Guest Agent (NGA).', cat: 'workload', req: ['nutanix'] },
+  { port: '3205 TCP/UDP', src: 'Rubrik cluster', dst: 'Nutanix cluster', desc: 'iSCSI data transfers for Nutanix AHV.', cat: 'workload', req: ['nutanix'] },
+  { port: '3260 TCP',     src: 'Rubrik cluster', dst: 'Nutanix cluster', desc: 'iSCSI data transfers for Nutanix AHV.', cat: 'workload', req: ['nutanix'] },
+  { port: '9440 TCP',     src: 'Rubrik cluster', dst: 'Nutanix cluster', desc: 'Communication between Nutanix Cluster and Rubrik cluster.', cat: 'workload', req: ['nutanix'] },
+  { port: '111 TCP',      src: 'Nutanix AHV host', dst: 'Rubrik cluster', desc: 'Provides an NFS datastore for Nutanix AHV.', cat: 'workload', req: ['nutanix'] },
+  { port: '32764-32769 TCP/UDP', src: 'Nutanix AHV host', dst: 'Rubrik cluster', desc: 'Provides an NFS datastore for Nutanix AHV.', cat: 'workload', req: ['nutanix'] },
+
+  /* ---------- Hyper-V ---------- */
+  { port: '12800-12801 TCP', src: 'Rubrik cluster',   dst: 'Hyper-V Server',  desc: 'Rubrik Backup Service (RBS) on Windows host.', cat: 'workload', req: ['hyperv'] },
+  { port: '445 TCP',         src: 'Live Mount host',  dst: 'Rubrik cluster',  desc: 'Required for SMB Mount.', cat: 'workload', req: ['hyperv'] },
+
+  /* ---------- MS-SQL ---------- */
+  { port: '12800-12801 TCP', src: 'Rubrik cluster',   dst: 'SQL Server',      desc: 'RBS on Windows host.', cat: 'workload', req: ['mssql'] },
+  { port: '445 TCP',         src: 'Live Mount host',  dst: 'Rubrik cluster',  desc: 'Live Mount SQL databases.', cat: 'workload', req: ['mssql'] },
+
+  /* ---------- Oracle ---------- */
+  { port: '12800-12801 TCP', src: 'Rubrik Cluster',       dst: 'Oracle Server',  desc: 'RBS on Oracle Server.', cat: 'workload', req: ['oracle'] },
+  { port: '111 TCP',         src: 'Oracle database host', dst: 'Rubrik Cluster', desc: 'NFS access for Managed Volumes.', cat: 'workload', req: ['oracle'] },
+  { port: '2049 TCP/UDP',    src: 'Oracle database host', dst: 'Rubrik Cluster', desc: 'NFS daemon for Live Mount of Managed Volume snapshots.', cat: 'workload', req: ['oracle'] },
+  { port: '32764-32769 TCP/UDP', src: 'Oracle database host', dst: 'Rubrik Cluster', desc: 'NFS access for Managed Volumes.', cat: 'workload', req: ['oracle'] },
+  { port: '443 TCP',         src: 'Oracle database host', dst: 'Rubrik Cluster', desc: 'Secure REST API commands from Oracle host.', cat: 'workload', req: ['oracle'] },
+  { port: '9639 TCP',        src: 'Oracle database host', dst: 'Rubrik Cluster', desc: 'Secure thrift transport for backup/recovery.', cat: 'workload', req: ['oracle'] },
+
+  /* ---------- DB2 ---------- */
+  { port: '12800-12801 TCP', src: 'Rubrik Cluster',    dst: 'DB2 database host', desc: 'RBS on DB2 host.', cat: 'workload', req: ['db2'] },
+  { port: '9639 TCP',        src: 'DB2 database host', dst: 'Rubrik Cluster',    desc: 'Data ingestion to Rubrik data service.', cat: 'workload', req: ['db2'] },
+
+  /* ---------- SAP HANA ---------- */
+  { port: '12800-12801 TCP', src: 'Rubrik Cluster',        dst: 'SAP HANA database host', desc: 'RBS on SAP HANA host.', cat: 'workload', req: ['saphana'] },
+  { port: '9639 TCP',        src: 'SAP HANA database host', dst: 'Rubrik Cluster',        desc: 'Data ingestion to Rubrik data service.', cat: 'workload', req: ['saphana'] },
+  { port: '111 TCP',         src: 'SAP HANA database host', dst: 'Rubrik Cluster',        desc: 'NFS access for Managed Volumes.', cat: 'workload', req: ['saphana'] },
+  { port: '2049 TCP/UDP',    src: 'SAP HANA database host', dst: 'Rubrik Cluster',        desc: 'NFS daemon for Live Mount of Managed Volume snapshots.', cat: 'workload', req: ['saphana'] },
+  { port: '32764-32769 TCP/UDP', src: 'SAP HANA database host', dst: 'Rubrik Cluster',    desc: 'NFS access for Managed Volumes.', cat: 'workload', req: ['saphana'] },
+  { port: '443',             src: 'SAP HANA database host', dst: 'Rubrik Cluster',        desc: 'Secure REST API commands from SAP HANA host.', cat: 'workload', req: ['saphana'] },
+
+  /* ---------- NAS ---------- */
+  { port: '443',         src: 'Rubrik', dst: 'NetApp',              desc: 'NAS vendor API integration.', cat: 'workload', req: ['nas'] },
+  { port: '8080',        src: 'Rubrik', dst: 'Isilon',              desc: 'NAS vendor API integration.', cat: 'workload', req: ['nas'] },
+  { port: '443',         src: 'Rubrik', dst: 'Pure',                desc: 'NAS vendor API integration.', cat: 'workload', req: ['nas'] },
+  { port: '9440',        src: 'Rubrik', dst: 'Nutanix File Server', desc: 'NAS vendor API integration.', cat: 'workload', req: ['nas'] },
+  { port: '111',         src: 'NAS',    dst: 'Rubrik',              desc: 'NFS.', cat: 'workload', req: ['nas'] },
+  { port: '2049',        src: 'NAS',    dst: 'Rubrik',              desc: 'NFS.', cat: 'workload', req: ['nas'] },
+  { port: '32764-32769', src: 'NAS',    dst: 'Rubrik',              desc: 'NFS (additional mountd/lockd ports may be required per site).', cat: 'workload', req: ['nas'] },
+  { port: '445',         src: 'NAS',    dst: 'Rubrik',              desc: 'SMB.', cat: 'workload', req: ['nas'] },
+
+  /* ---------- Physical Windows Host ---------- */
+  { port: '12800-12801 TCP', src: 'Rubrik cluster',  dst: 'Host Server',    desc: 'RBS on Windows host.', cat: 'workload', req: ['winhost'] },
+  { port: '445 TCP',         src: 'Live Mount host', dst: 'Rubrik cluster', desc: 'Live Mount of Windows volume groups.', cat: 'workload', req: ['winhost'] },
+
+  /* ---------- Physical Linux/AIX/Solaris ---------- */
+  { port: '12800-12801 TCP', src: 'Rubrik cluster', dst: 'Host Server', desc: 'RBS on Linux/AIX/Solaris host.', cat: 'workload', req: ['nixhost'] },
+
+  /* ---------- Archive Targets ---------- */
+  { port: '443',  src: 'Rubrik cluster', dst: '<blob-acct>.blob.core.windows.net', desc: 'Azure / Azure Rubrik Cloud Vault archival location.', cat: 'archive', req: ['azure'] },
+  { port: '443',  src: 'Rubrik cluster', dst: 's3.<region>.amazonaws.com\nkms.<region>.amazonaws.com', desc: 'AWS / AWS Rubrik Cloud Vault archival location.', cat: 'archive', req: ['aws'] },
+  { port: '443',  src: 'Rubrik cluster', dst: 'storage.cloud.google.com\nstorage.googleapis.com', desc: 'Archiving to a GCP location.', cat: 'archive', req: ['gcp'] },
+  { port: '2049', src: 'Rubrik cluster', dst: 'NFS Storage',   desc: 'Archiving to an NFS location.', cat: 'archive', req: ['nfs'] },
+  { port: '443',  src: 'Rubrik cluster', dst: 'S3 hostname',   desc: 'Archiving to an S3-compatible object store.', cat: 'archive', req: ['s3compat'] },
+  { port: '443',  src: 'Rubrik Cluster', dst: '*.vault.azure.net', desc: 'Azure Key Vault for Encryption-at-Rest (EAR) for Azure.', cat: 'archive', req: ['azurekv'] },
+
+  /* ---------- Replication ---------- */
+  { port: 'TCP 7785', src: 'Rubrik clusters', dst: 'Rubrik clusters', desc: 'Rubrik Replication.', cat: 'replication', req: ['replication'] },
+
+  /* ---------- Integrations ---------- */
+  { port: '25 TCP',  src: 'Rubrik Cluster', dst: 'Email Server',     desc: 'Email alerts to administrators.', cat: 'registration', req: ['smtp'] },
+  { port: '465 TCP', src: 'Rubrik Cluster', dst: 'Email Server',     desc: 'Email alerts (SMTPS).', cat: 'registration', req: ['smtp'] },
+  { port: '587 TCP', src: 'Rubrik Cluster', dst: 'Email Server',     desc: 'Email alerts (SMTP submission).', cat: 'registration', req: ['smtp'] },
+  { port: '443 TCP', src: 'Rubrik cluster', dst: 'proxy.rubrik.com', desc: 'Rubrik Support tunnel and cluster statistics.', cat: 'registration', req: ['support'] },
+];
+
+/* ====================================================================
+   STATE + RENDER
+   ==================================================================== */
+
+const state = new Set();
+
+function buildOptionGroup(groupId, list) {
+  const container = document.getElementById(groupId);
+  container.innerHTML = list.map(o => `
+    <div class="opt" data-key="${o.key}">
+      <div class="check"></div>
+      <div class="lbl">${o.label}</div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.opt').forEach(el => {
+    el.addEventListener('click', () => {
+      const k = el.dataset.key;
+      if (state.has(k)) { state.delete(k); el.classList.remove('active'); }
+      else { state.add(k); el.classList.add('active'); }
+      render();
+    });
+  });
+}
+
+function getCategoryBadge(cat) {
+  const map = {
+    registration: ['REGISTRATION', 'badge-registration'],
+    management:   ['MANAGEMENT',   'badge-mgmt'],
+    workload:     ['WORKLOAD',     'badge-workload'],
+    archive:      ['ARCHIVE',      'badge-archive'],
+    replication:  ['REPLICATION',  'badge-replication'],
+  };
+  const [label, cls] = map[cat] || ['OTHER', 'badge-mgmt'];
+  return `<span class="category-badge ${cls}">${label}</span>`;
+}
 
 function render() {
-  const host = document.getElementById('sections');
-  host.innerHTML = '';
-  let idx = 0;
-  for (const [section, items] of Object.entries(DATA)) {
-    const wrap = document.createElement('div');
-    wrap.className = 'section ' + SECTION_CLASS[section];
-    const title = document.createElement('p');
-    title.className = 'section-title';
-    title.textContent = section;
-    wrap.appendChild(title);
-    const grid = document.createElement('div');
-    grid.className = 'grid';
-    items.forEach((it) => {
-      const id = 'chk-' + idx++;
-      it._id = id;
-      it._section = section;
-      const label = document.createElement('label');
-      label.className = 'chk';
-      label.innerHTML = '<input type="checkbox" data-id="' + id + '"><span class="chk-label"></span>';
-      label.querySelector('.chk-label').textContent = it.s;
-      grid.appendChild(label);
-    });
-    wrap.appendChild(grid);
-    host.appendChild(wrap);
+  // Filter rules
+  const active = Array.from(state);
+  const rules = PORTS.filter(r => r.req.some(k => state.has(k)));
+
+  // Dedupe by port+src+dst+desc
+  const seen = new Set();
+  const unique = [];
+  for (const r of rules) {
+    const sig = `${r.port}|${r.src}|${r.dst}|${r.desc}`;
+    if (!seen.has(sig)) { seen.add(sig); unique.push(r); }
   }
-  host.querySelectorAll('input[type=checkbox]').forEach(cb => {
-    cb.addEventListener('change', (e) => {
-      const id = e.target.dataset.id;
-      const parent = e.target.closest('.chk');
-      if (e.target.checked) { selected.add(id); parent.classList.add('checked'); }
-      else { selected.delete(id); parent.classList.remove('checked'); }
-      renderSummary();
-    });
-  });
-}
 
-function allItems() {
-  return Object.entries(DATA).flatMap(([sec, arr]) => arr.map(it => ({...it, _section: sec})));
-}
+  // Port count = number of unique port strings
+  const uniquePorts = new Set(unique.map(r => r.port));
 
-function parsePorts(text) {
-  if (!text) return [];
-  const out = [];
-  text.split('\n').forEach(line => {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('-')) return;
-    const m = trimmed.match(/^(TCP\/UDP|TCP|UDP)\s+(.+?)(?:\s+to\s+.*)?$/i);
-    if (m) {
-      const proto = m[1].toUpperCase();
-      const portsPart = m[2].replace(/\s+and\/or\s+/g, ', ').trim();
-      const tokens = portsPart.split(/,\s*/).map(t => t.trim()).filter(t => /^[\d\-]+$/.test(t));
-      tokens.forEach(p => {
-        if (proto === 'TCP/UDP') { out.push('TCP ' + p); out.push('UDP ' + p); }
-        else out.push(proto + ' ' + p);
-      });
-    }
-  });
-  return out;
-}
+  // Header stats
+  document.getElementById('statSel').textContent   = active.length;
+  document.getElementById('statPorts').textContent = uniquePorts.size;
+  document.getElementById('statRules').textContent = unique.length;
 
-function sortPorts(set) {
-  return [...set].sort((a, b) => {
-    const [pa, na] = a.split(' '); const [pb, nb] = b.split(' ');
-    if (pa !== pb) return pa.localeCompare(pb);
-    const firstNum = s => parseInt(s.split('-')[0]);
-    return firstNum(na) - firstNum(nb);
-  });
-}
+  // Summary chips
+  const catCounts = unique.reduce((a, r) => { a[r.cat] = (a[r.cat] || 0) + 1; return a; }, {});
+  const chipEl = document.getElementById('portSummary');
+  const chipParts = [];
+  if (catCounts.registration) chipParts.push(`<span class="chip">Registration · ${catCounts.registration}</span>`);
+  if (catCounts.management)   chipParts.push(`<span class="chip blue">Management · ${catCounts.management}</span>`);
+  if (catCounts.workload)     chipParts.push(`<span class="chip">Workloads · ${catCounts.workload}</span>`);
+  if (catCounts.archive)      chipParts.push(`<span class="chip orange">Archive · ${catCounts.archive}</span>`);
+  if (catCounts.replication)  chipParts.push(`<span class="chip blue">Replication · ${catCounts.replication}</span>`);
+  chipEl.innerHTML = chipParts.join('');
 
-function extractFqdns(items) {
-  const fqdns = new Set();
-  items.forEach(it => {
-    const text = (it.out || '') + '\n' + (it.bi || '');
-    text.split('\n').forEach(line => {
-      const t = line.trim();
-      if (t.startsWith('-')) {
-        const host = t.replace(/^-\s*/, '').trim();
-        if (host) fqdns.add(host);
-      } else if (t.toLowerCase().includes('cloudian url')) {
-        fqdns.add('(the Cloudian URL)');
-      }
-    });
-  });
-  return [...fqdns];
-}
-
-function renderSummary() {
-  const body = document.getElementById('body');
-  document.getElementById('count').textContent = selected.size;
-  if (selected.size === 0) {
-    body.innerHTML = '<div class="empty"><span class="empty-icon">◆</span>Select one or more services above to see the firewall ports you need to open.</div>';
+  // Render table
+  const body = document.getElementById('portBody');
+  if (unique.length === 0) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/>
+      </svg>
+      <div>Select at least one component to generate your port list.</div>
+    </td></tr>`;
     return;
   }
-  const items = allItems().filter(it => selected.has(it._id));
-  const directional = items.filter(it => it.in !== undefined);
-  const biItems = items.filter(it => it.bi !== undefined);
 
-  let html = '';
-
-  if (directional.length) {
-    html += '<div class="head-row"><div>Service</div><div>Inbound → Rubrik</div><div>Rubrik → Outbound</div></div>';
-    directional.forEach(it => {
-      html += '<div class="row">' +
-        '<div class="row-service">' + escapeHtml(it.s) + '</div>' +
-        '<div class="ports" data-label="Inbound">' + escapeHtml(it.in || '—') + '</div>' +
-        '<div class="ports" data-label="Outbound">' + escapeHtml(it.out || '—') + '</div>' +
-        '</div>';
-    });
-  }
-  if (biItems.length) {
-    if (directional.length) html += '<div style="height:16px"></div>';
-    html += '<div class="head-row" style="grid-template-columns: 1fr 2fr;"><div>Service</div><div>Bi-directional (between nodes)</div></div>';
-    biItems.forEach(it => {
-      html += '<div class="row" style="grid-template-columns: 1fr 2fr;">' +
-        '<div class="row-service">' + escapeHtml(it.s) + '</div>' +
-        '<div class="ports" data-label="Bi-directional">' + escapeHtml(it.bi) + '</div>' +
-        '</div>';
-    });
-  }
-
-  const inbound = new Set(), outbound = new Set(), bi = new Set();
-  directional.forEach(it => {
-    parsePorts(it.in).forEach(p => inbound.add(p));
-    parsePorts(it.out).forEach(p => outbound.add(p));
+  // Sort: category order, then port
+  const catOrder = { registration: 0, management: 1, workload: 2, archive: 3, replication: 4 };
+  unique.sort((a, b) => {
+    if (catOrder[a.cat] !== catOrder[b.cat]) return catOrder[a.cat] - catOrder[b.cat];
+    return a.port.localeCompare(b.port);
   });
-  biItems.forEach(it => parsePorts(it.bi).forEach(p => bi.add(p)));
 
-  if (inbound.size || outbound.size || bi.size) {
-    html += '<div class="consolidated"><h3>Consolidated port list (deduplicated)</h3>';
-    if (inbound.size) {
-      html += '<div class="pill-line"><span class="pill-label in">Inbound</span><div class="pill-wrap">';
-      sortPorts(inbound).forEach(p => { html += '<span class="pill pill-in">' + escapeHtml(p) + '</span>'; });
-      html += '</div></div>';
-    }
-    if (outbound.size) {
-      html += '<div class="pill-line"><span class="pill-label out">Outbound</span><div class="pill-wrap">';
-      sortPorts(outbound).forEach(p => { html += '<span class="pill pill-out">' + escapeHtml(p) + '</span>'; });
-      html += '</div></div>';
-    }
-    if (bi.size) {
-      html += '<div class="pill-line"><span class="pill-label bi">Bi-directional</span><div class="pill-wrap">';
-      sortPorts(bi).forEach(p => { html += '<span class="pill pill-bi">' + escapeHtml(p) + '</span>'; });
-      html += '</div></div>';
-    }
-
-    const fqdns = extractFqdns(items);
-    if (fqdns.length) {
-      html += '<div class="fqdn-note"><strong>FQDN allow-listing also required</strong>';
-      html += fqdns.map(f => '<code>' + escapeHtml(f) + '</code>').join('');
-      html += '</div>';
-    }
-
-    html += '</div>';
-  }
-
-  body.innerHTML = html;
+  body.innerHTML = unique.map(r => `
+    <tr>
+      <td class="port-cell">${r.port}</td>
+      <td class="src-cell">${getCategoryBadge(r.cat)}<br>${r.src}</td>
+      <td class="dst-cell">${r.dst}</td>
+      <td class="desc-cell">${r.desc}</td>
+    </tr>
+  `).join('');
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+/* ====================================================================
+   ACTIONS
+   ==================================================================== */
 
-function setChecks(predicate) {
-  selected.clear();
-  document.querySelectorAll('#sections .chk').forEach(el => el.classList.remove('checked'));
-  document.querySelectorAll('#sections input[type=checkbox]').forEach(cb => { cb.checked = false; });
-  allItems().forEach(it => {
-    if (predicate(it)) {
-      selected.add(it._id);
-      const cb = document.querySelector('input[data-id="' + it._id + '"]');
-      if (cb) { cb.checked = true; cb.closest('.chk').classList.add('checked'); }
-    }
+function setState(keys) {
+  state.clear();
+  keys.forEach(k => state.add(k));
+  document.querySelectorAll('.opt').forEach(el => {
+    el.classList.toggle('active', state.has(el.dataset.key));
   });
-  renderSummary();
+  render();
 }
 
-function buildClipboardText() {
-  if (selected.size === 0) return 'No services selected.';
-  const items = allItems().filter(it => selected.has(it._id));
-  const directional = items.filter(it => it.in !== undefined);
-  const biItems = items.filter(it => it.bi !== undefined);
-
-  const inbound = new Set(), outbound = new Set(), bi = new Set();
-  directional.forEach(it => {
-    parsePorts(it.in).forEach(p => inbound.add(p));
-    parsePorts(it.out).forEach(p => outbound.add(p));
-  });
-  biItems.forEach(it => parsePorts(it.bi).forEach(p => bi.add(p)));
-
-  const lines = ['Rubrik Firewall Port Requirements', '='.repeat(40), ''];
-  lines.push('Selected services:');
-  items.forEach(it => lines.push('  - ' + it.s + '  [' + it._section + ']'));
-  lines.push('');
-
-  if (inbound.size) {
-    lines.push('Inbound to Rubrik Data Vault:');
-    sortPorts(inbound).forEach(p => lines.push('  ' + p));
-    lines.push('');
-  }
-  if (outbound.size) {
-    lines.push('Outbound from Rubrik Data Vault:');
-    sortPorts(outbound).forEach(p => lines.push('  ' + p));
-    lines.push('');
-  }
-  if (bi.size) {
-    lines.push('Bi-directional (between Rubrik nodes):');
-    sortPorts(bi).forEach(p => lines.push('  ' + p));
-    lines.push('');
-  }
-
-  const fqdns = extractFqdns(items);
-  if (fqdns.length) {
-    lines.push('FQDNs to allow-list:');
-    fqdns.forEach(f => lines.push('  ' + f));
-  }
-
-  return lines.join('\n');
-}
-
-render();
-renderSummary();
-
-document.getElementById('btn-clear').addEventListener('click', () => setChecks(() => false));
-document.getElementById('btn-mgmt').addEventListener('click', () => {
-  const core = new Set(['SSH','Web UI (client web browser)','NTP','DNS','SMTP','Syslog','AD / LDAP']);
-  setChecks(it => core.has(it.s));
+document.getElementById('selectDefaults').addEventListener('click', () => {
+  setState(['registration', 'management', 'support']);
 });
-document.getElementById('btn-intra').addEventListener('click', () => {
-  const keep = new Set([...selected]);
-  allItems().forEach(it => { if (it._section === 'Intra-Cluster Communication') keep.add(it._id); });
-  setChecks(it => keep.has(it._id));
+
+document.getElementById('selectAll').addEventListener('click', () => {
+  const all = [];
+  Object.values(OPTIONS).forEach(group => group.forEach(o => all.push(o.key)));
+  setState(all);
 });
-document.getElementById('btn-print').addEventListener('click', () => window.print());
-document.getElementById('btn-copy').addEventListener('click', async (e) => {
-  const text = buildClipboardText();
-  const btn = e.target;
-  const original = btn.textContent;
-  try {
-    await navigator.clipboard.writeText(text);
-    btn.textContent = 'Copied ✓';
-  } catch (err) {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand('copy'); btn.textContent = 'Copied ✓'; }
-    catch (e2) { btn.textContent = 'Copy failed'; }
-    document.body.removeChild(ta);
-  }
-  setTimeout(() => { btn.textContent = original; }, 1800);
+
+document.getElementById('clearAll').addEventListener('click', () => setState([]));
+
+document.getElementById('exportCsv').addEventListener('click', () => {
+  const rules = PORTS.filter(r => r.req.some(k => state.has(k)));
+  if (!rules.length) { alert('Select at least one component to export.'); return; }
+  const header = ['Port', 'Source', 'Destination', 'Category', 'Description'];
+  const rows = rules.map(r => [r.port, r.src.replace(/\n/g, ' '), r.dst.replace(/\n/g, ' '), r.cat, r.desc.replace(/\n/g, ' ')]);
+  const csv = [header, ...rows].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'rubrik_port_list.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 });
+
+/* ====================================================================
+   INIT
+   ==================================================================== */
+buildOptionGroup('grp-functions',    OPTIONS.functions);
+buildOptionGroup('grp-workloads',    OPTIONS.workloads);
+buildOptionGroup('grp-archive',      OPTIONS.archive);
+buildOptionGroup('grp-integrations', OPTIONS.integrations);
+
+// Start with no selections — user must click Recommended Defaults or pick options
+setState([]);
 </script>
 </body>
 </html>
