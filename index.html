@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rubrik Firewall Port Planner</title>
+<meta name="description" content="Interactive tool to determine the firewall ports required for a Rubrik deployment based on the workloads and services you're protecting.">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f7f6f3;
+    --bg-tertiary: #efede8;
+    --text-primary: #1a1a1a;
+    --text-secondary: #5f5e5a;
+    --text-tertiary: #888780;
+    --border: rgba(0,0,0,0.12);
+    --border-hover: rgba(0,0,0,0.22);
+    --accent: #534AB7;
+    --accent-bg: #EEEDFE;
+    --accent-border: #7F77DD;
+    --accent-text: #3C3489;
+    --in-bg: #E6F1FB;
+    --in-text: #0C447C;
+    --out-bg: #E1F5EE;
+    --out-text: #085041;
+    --bi-bg: #EEEDFE;
+    --bi-text: #3C3489;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg-secondary: #252523;
+      --bg-tertiary: #2c2c2a;
+      --text-primary: #f1efe8;
+      --text-secondary: #b4b2a9;
+      --text-tertiary: #888780;
+      --border: rgba(255,255,255,0.14);
+      --border-hover: rgba(255,255,255,0.26);
+      --accent: #AFA9EC;
+      --accent-bg: #26215C;
+      --accent-border: #534AB7;
+      --accent-text: #CECBF6;
+      --in-bg: #042C53;
+      --in-text: #B5D4F4;
+      --out-bg: #04342C;
+      --out-text: #9FE1CB;
+      --bi-bg: #26215C;
+      --bi-text: #CECBF6;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg-tertiary); color: var(--text-primary); font-family: var(--font-sans); line-height: 1.5; }
+  .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  header { margin-bottom: 2rem; }
+  h1 { font-size: 24px; font-weight: 500; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .subtitle { font-size: 14px; color: var(--text-secondary); margin: 0; max-width: 640px; }
+
+  .section { margin-bottom: 1.5rem; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin: 0 0 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+
+  .chk { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 0.5px solid var(--border); border-radius: var(--radius-md); background: var(--bg); cursor: pointer; font-size: 13px; line-height: 1.35; transition: background 0.12s, border-color 0.12s; user-select: none; }
+  .chk:hover { background: var(--bg-secondary); border-color: var(--border-hover); }
+  .chk input { margin: 2px 0 0; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; }
+  .chk.checked { background: var(--accent-bg); border-color: var(--accent-border); }
+  .chk-label { flex: 1; min-width: 0; }
+
+  .actions { display: flex; gap: 8px; margin: 0 0 1rem; flex-wrap: wrap; }
+  .btn { font-size: 13px; padding: 7px 13px; border-radius: var(--radius-md); border: 0.5px solid var(--border-hover); background: var(--bg); color: var(--text-primary); cursor: pointer; font-family: inherit; transition: background 0.12s; }
+  .btn:hover { background: var(--bg-secondary); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-text); }
+
+  .summary { margin-top: 2rem; padding: 1.25rem 1.5rem; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); }
+  .summary-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 14px; gap: 12px; flex-wrap: wrap; }
+  .summary-title { font-size: 18px; font-weight: 500; margin: 0; }
+  .stats { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); }
+  .stat strong { color: var(--text-primary); font-weight: 500; }
+
+  .head-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); margin-bottom: 8px; }
+  .row { border-top: 0.5px solid var(--border); padding: 10px 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; font-size: 13px; align-items: start; }
+  .row:first-of-type { border-top: none; padding-top: 0; }
+  .row-service { font-weight: 500; }
+  .ports { color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap; line-height: 1.55; }
+  .empty { font-size: 13px; color: var(--text-secondary); padding: 8px 0; }
+
+  .consolidated { margin-top: 20px; padding-top: 16px; border-top: 0.5px solid var(--border); }
+  .consolidated h3 { font-size: 14px; font-weight: 500; margin: 0 0 10px; color: var(--text-primary); }
+  .pill { font-size: 12px; padding: 3px 8px; border-radius: var(--radius-md); font-family: var(--font-mono); display: inline-block; }
+  .pill-in { background: var(--in-bg); color: var(--in-text); }
+  .pill-out { background: var(--out-bg); color: var(--out-text); }
+  .pill-bi { background: var(--bi-bg); color: var(--bi-text); }
+  .pill-label { font-size: 11px; color: var(--text-tertiary); width: 90px; flex-shrink: 0; padding-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .pill-line { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+  .pill-wrap { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+  .fqdn-note { font-size: 12px; color: var(--text-tertiary); margin: 12px 0 0; padding: 10px 12px; background: var(--bg-secondary); border-radius: var(--radius-md); }
+
+  footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 0.5px solid var(--border); font-size: 12px; color: var(--text-tertiary); text-align: center; }
+  footer a { color: var(--text-secondary); }
+
+  @media (max-width: 600px) {
+    .row, .head-row { grid-template-columns: 1fr; }
+    .head-row { display: none; }
+    .row-service { font-size: 14px; }
+    .container { padding: 1.25rem 1rem 3rem; }
+    h1 { font-size: 20px; }
+    .pill-label { width: 100%; padding-top: 0; margin-bottom: 4px; }
+    .pill-line { flex-direction: column; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    .actions, footer, .grid { display: none; }
+    .section-title { color: #000; }
+    .summary { border: 1px solid #000; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Rubrik Firewall Port Planner</h1>
+    <p class="subtitle">Select the workloads, management services, cloud targets, and cluster features you're deploying. The summary below shows exactly which firewall ports you need to open, deduplicated by direction.</p>
+  </header>
+
+  <main>
+    <div id="sections"></div>
+
+    <div class="actions">
+      <button class="btn" id="btn-clear">Clear all</button>
+      <button class="btn" id="btn-mgmt">Select core management</button>
+      <button class="btn" id="btn-intra">Include intra-cluster</button>
+      <button class="btn" id="btn-print">Print / Save PDF</button>
+      <button class="btn btn-primary" id="btn-copy">Copy port list</button>
+    </div>
+
+    <section class="summary" id="summary">
+      <div class="summary-head">
+        <h2 class="summary-title">Required firewall ports</h2>
+        <div class="stats">
+          <span class="stat"><strong id="count">0</strong> services selected</span>
+        </div>
+      </div>
+      <div id="body"></div>
+    </section>
+  </main>
+
+  <footer>
+    Port data sourced from Rubrik Pre-Req documentation. This tool is a planning aid — always verify against your current Rubrik release notes before opening firewall rules in production.
+  </footer>
+</div>
+
+<script>
+const DATA = {
+  "Workloads": [
+    { s: "VMware vCenter or vCD", in: "", out: "TCP 443" },
+    { s: "VMware ESXi hosts", in: "TCP 111, 1514, 2049, 12500, 32764-32769\nUDP 2049, 32764-32769", out: "TCP 443, 902" },
+    { s: "Windows, Hyper-V & SQL Hosts (RBS)", in: "TCP 139, 445\nUDP 137, 138", out: "TCP 12800, 12801" },
+    { s: "Linux, AIX, Solaris Hosts (RBS)", in: "", out: "TCP 12800, 12801" },
+    { s: "Prism Central", in: "", out: "TCP 9440" },
+    { s: "Nutanix Hosts", in: "TCP/UDP 111, 2049, 32764-32769", out: "TCP 3260, 3205, 860, 9440" },
+    { s: "Oracle hosts (RBS)", in: "TCP 111, 2049, 12500, 32764-32769\nUDP 111, 2049, 32764-32769", out: "TCP 12800, 12801" },
+    { s: "Managed Volumes (NFS)", in: "TCP 111, 2049, 32764-32769\nUDP 111, 2049, 32764-32769", out: "" },
+    { s: "SMB / NAS", in: "TCP 139, 445\nUDP 137, 138", out: "" },
+    { s: "NFS / NAS", in: "TCP 32764-32769\nUDP 32764-32769", out: "" }
+  ],
+  "Management": [
+    { s: "SSH", in: "TCP 22", out: "" },
+    { s: "Web UI (client web browser)", in: "TCP 80, 443", out: "" },
+    { s: "NTP", in: "", out: "UDP 123" },
+    { s: "DNS", in: "", out: "UDP 53" },
+    { s: "SMTP", in: "", out: "TCP 25, 465 and/or 587" },
+    { s: "SNMP", in: "UDP 161", out: "UDP 162" },
+    { s: "Syslog", in: "", out: "TCP 514" },
+    { s: "AD / LDAP", in: "", out: "TCP 88, 389, 445, 464, 636, 3268, 3269\nUDP 88, 464" },
+    { s: "Isilon NAS API", in: "", out: "TCP 8080" },
+    { s: "NetApp NAS API", in: "", out: "TCP 443" }
+  ],
+  "Internet / Cloud": [
+    { s: "Rubrik Security Cloud (RSC)", in: "", out: "TCP 443 to:\n- <customer>.my.rubrik.com\n- proxy.rubrik.com\n- cdn.rsc.rubrik.com" },
+    { s: "Rubrik Support", in: "", out: "TCP 443 to:\n- proxy.rubrik.com\n- apollo-ingest.s3.amazonaws.com\n- rubrikstats.s3.amazonaws.com" },
+    { s: "CloudOut Archival to S3 (Cloudian)", in: "", out: "TCP 443 to the Cloudian URL" },
+    { s: "CloudOut Archival to NFS", in: "", out: "TCP 2049" },
+    { s: "CloudOut Archival to AWS", in: "", out: "TCP 443 to S3:\n- s3.<region>.amazonaws.com\n- kms.<region>.amazonaws.com" },
+    { s: "CloudOut Archival to Azure", in: "", out: "TCP 443 to Blob Storage Account:\n- <blob-acct>.blob.core.windows.net" },
+    { s: "CloudOut Archival to GCP", in: "", out: "TCP 443 to GCP Storage:\n- storage.cloud.google.com\n- storage.googleapis.com" }
+  ],
+  "Intra-Cluster Communication": [
+    { s: "Rubrik Data Vault Nodes (between nodes)", bi: "TCP 1515, 1516, 2013, 2014, 2015, 2200, 5766, 5767, 7096, 7780, 7781, 7784, 7785, 7790, 8081, 8082, 8086, 9638, 10000-10003, 26257\nUDP 123, 137, 5353" },
+    { s: "Rubrik Data Vault Replication", bi: "TCP 7785" },
+    { s: "HotAdd Proxy (optional, Proxy VM subnet to Rubrik nodes)", bi: "TCP 8077, 58000" }
+  ]
+};
+
+const selected = new Set();
+
+function render() {
+  const host = document.getElementById('sections');
+  host.innerHTML = '';
+  let idx = 0;
+  for (const [section, items] of Object.entries(DATA)) {
+    const wrap = document.createElement('div');
+    wrap.className = 'section';
+    const title = document.createElement('p');
+    title.className = 'section-title';
+    title.textContent = section;
+    wrap.appendChild(title);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    items.forEach((it) => {
+      const id = 'chk-' + idx++;
+      it._id = id;
+      it._section = section;
+      const label = document.createElement('label');
+      label.className = 'chk';
+      label.innerHTML = '<input type="checkbox" data-id="' + id + '"><span class="chk-label"></span>';
+      label.querySelector('.chk-label').textContent = it.s;
+      grid.appendChild(label);
+    });
+    wrap.appendChild(grid);
+    host.appendChild(wrap);
+  }
+  host.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const id = e.target.dataset.id;
+      const parent = e.target.closest('.chk');
+      if (e.target.checked) { selected.add(id); parent.classList.add('checked'); }
+      else { selected.delete(id); parent.classList.remove('checked'); }
+      renderSummary();
+    });
+  });
+}
+
+function allItems() {
+  return Object.entries(DATA).flatMap(([sec, arr]) => arr.map(it => ({...it, _section: sec})));
+}
+
+function parsePorts(text) {
+  if (!text) return [];
+  const out = [];
+  text.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('-')) return;
+    const m = trimmed.match(/^(TCP\/UDP|TCP|UDP)\s+(.+?)(?:\s+to\s+.*)?$/i);
+    if (m) {
+      const proto = m[1].toUpperCase();
+      const portsPart = m[2].replace(/\s+and\/or\s+/g, ', ').trim();
+      const tokens = portsPart.split(/,\s*/).map(t => t.trim()).filter(t => /^[\d\-]+$/.test(t));
+      tokens.forEach(p => {
+        if (proto === 'TCP/UDP') { out.push('TCP ' + p); out.push('UDP ' + p); }
+        else out.push(proto + ' ' + p);
+      });
+    }
+  });
+  return out;
+}
+
+function sortPorts(set) {
+  return [...set].sort((a, b) => {
+    const [pa, na] = a.split(' '); const [pb, nb] = b.split(' ');
+    if (pa !== pb) return pa.localeCompare(pb);
+    const firstNum = s => parseInt(s.split('-')[0]);
+    return firstNum(na) - firstNum(nb);
+  });
+}
+
+function extractFqdns(items) {
+  const fqdns = new Set();
+  items.forEach(it => {
+    const text = (it.out || '') + '\n' + (it.bi || '');
+    text.split('\n').forEach(line => {
+      const t = line.trim();
+      if (t.startsWith('-')) {
+        const host = t.replace(/^-\s*/, '').trim();
+        if (host) fqdns.add(host);
+      } else if (t.toLowerCase().includes('cloudian url')) {
+        fqdns.add('(the Cloudian URL)');
+      }
+    });
+  });
+  return [...fqdns];
+}
+
+function renderSummary() {
+  const body = document.getElementById('body');
+  document.getElementById('count').textContent = selected.size;
+  if (selected.size === 0) {
+    body.innerHTML = '<div class="empty">Select one or more services above to see the firewall ports you need to open.</div>';
+    return;
+  }
+  const items = allItems().filter(it => selected.has(it._id));
+  const directional = items.filter(it => it.in !== undefined);
+  const biItems = items.filter(it => it.bi !== undefined);
+
+  let html = '';
+
+  if (directional.length) {
+    html += '<div class="head-row"><div>Service</div><div>Inbound → Rubrik</div><div>Outbound ← Rubrik</div></div>';
+    directional.forEach(it => {
+      html += '<div class="row">' +
+        '<div class="row-service">' + escapeHtml(it.s) + '</div>' +
+        '<div class="ports">' + escapeHtml(it.in || '—') + '</div>' +
+        '<div class="ports">' + escapeHtml(it.out || '—') + '</div>' +
+        '</div>';
+    });
+  }
+  if (biItems.length) {
+    if (directional.length) html += '<div style="height:14px"></div>';
+    html += '<div class="head-row" style="grid-template-columns: 1fr 2fr;"><div>Service</div><div>Bi-directional (between nodes)</div></div>';
+    biItems.forEach(it => {
+      html += '<div class="row" style="grid-template-columns: 1fr 2fr;">' +
+        '<div class="row-service">' + escapeHtml(it.s) + '</div>' +
+        '<div class="ports">' + escapeHtml(it.bi) + '</div>' +
+        '</div>';
+    });
+  }
+
+  const inbound = new Set(), outbound = new Set(), bi = new Set();
+  directional.forEach(it => {
+    parsePorts(it.in).forEach(p => inbound.add(p));
+    parsePorts(it.out).forEach(p => outbound.add(p));
+  });
+  biItems.forEach(it => parsePorts(it.bi).forEach(p => bi.add(p)));
+
+  if (inbound.size || outbound.size || bi.size) {
+    html += '<div class="consolidated"><h3>Consolidated port list (deduplicated)</h3>';
+    if (inbound.size) {
+      html += '<div class="pill-line"><span class="pill-label">Inbound</span><div class="pill-wrap">';
+      sortPorts(inbound).forEach(p => { html += '<span class="pill pill-in">' + escapeHtml(p) + '</span>'; });
+      html += '</div></div>';
+    }
+    if (outbound.size) {
+      html += '<div class="pill-line"><span class="pill-label">Outbound</span><div class="pill-wrap">';
+      sortPorts(outbound).forEach(p => { html += '<span class="pill pill-out">' + escapeHtml(p) + '</span>'; });
+      html += '</div></div>';
+    }
+    if (bi.size) {
+      html += '<div class="pill-line"><span class="pill-label">Bi-directional</span><div class="pill-wrap">';
+      sortPorts(bi).forEach(p => { html += '<span class="pill pill-bi">' + escapeHtml(p) + '</span>'; });
+      html += '</div></div>';
+    }
+
+    const fqdns = extractFqdns(items);
+    if (fqdns.length) {
+      html += '<div class="fqdn-note"><strong>FQDN allow-listing also required:</strong><br>';
+      html += fqdns.map(f => escapeHtml(f)).join('<br>');
+      html += '</div>';
+    }
+
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function setChecks(predicate) {
+  selected.clear();
+  document.querySelectorAll('#sections .chk').forEach(el => el.classList.remove('checked'));
+  document.querySelectorAll('#sections input[type=checkbox]').forEach(cb => { cb.checked = false; });
+  allItems().forEach(it => {
+    if (predicate(it)) {
+      selected.add(it._id);
+      const cb = document.querySelector('input[data-id="' + it._id + '"]');
+      if (cb) { cb.checked = true; cb.closest('.chk').classList.add('checked'); }
+    }
+  });
+  renderSummary();
+}
+
+function buildClipboardText() {
+  if (selected.size === 0) return 'No services selected.';
+  const items = allItems().filter(it => selected.has(it._id));
+  const directional = items.filter(it => it.in !== undefined);
+  const biItems = items.filter(it => it.bi !== undefined);
+
+  const inbound = new Set(), outbound = new Set(), bi = new Set();
+  directional.forEach(it => {
+    parsePorts(it.in).forEach(p => inbound.add(p));
+    parsePorts(it.out).forEach(p => outbound.add(p));
+  });
+  biItems.forEach(it => parsePorts(it.bi).forEach(p => bi.add(p)));
+
+  const lines = ['Rubrik Firewall Port Requirements', '='.repeat(40), ''];
+  lines.push('Selected services:');
+  items.forEach(it => lines.push('  - ' + it.s + '  [' + it._section + ']'));
+  lines.push('');
+
+  if (inbound.size) {
+    lines.push('Inbound to Rubrik Data Vault:');
+    sortPorts(inbound).forEach(p => lines.push('  ' + p));
+    lines.push('');
+  }
+  if (outbound.size) {
+    lines.push('Outbound from Rubrik Data Vault:');
+    sortPorts(outbound).forEach(p => lines.push('  ' + p));
+    lines.push('');
+  }
+  if (bi.size) {
+    lines.push('Bi-directional (between Rubrik nodes):');
+    sortPorts(bi).forEach(p => lines.push('  ' + p));
+    lines.push('');
+  }
+
+  const fqdns = extractFqdns(items);
+  if (fqdns.length) {
+    lines.push('FQDNs to allow-list:');
+    fqdns.forEach(f => lines.push('  ' + f));
+  }
+
+  return lines.join('\n');
+}
+
+render();
+renderSummary();
+
+document.getElementById('btn-clear').addEventListener('click', () => setChecks(() => false));
+document.getElementById('btn-mgmt').addEventListener('click', () => {
+  const core = new Set(['SSH','Web UI (client web browser)','NTP','DNS','SMTP','Syslog','AD / LDAP']);
+  setChecks(it => core.has(it.s));
+});
+document.getElementById('btn-intra').addEventListener('click', () => {
+  const keep = new Set([...selected]);
+  allItems().forEach(it => { if (it._section === 'Intra-Cluster Communication') keep.add(it._id); });
+  setChecks(it => keep.has(it._id));
+});
+document.getElementById('btn-print').addEventListener('click', () => window.print());
+document.getElementById('btn-copy').addEventListener('click', async (e) => {
+  const text = buildClipboardText();
+  const btn = e.target;
+  const original = btn.textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = 'Copied ✓';
+  } catch (err) {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); btn.textContent = 'Copied ✓'; }
+    catch (e2) { btn.textContent = 'Copy failed'; }
+    document.body.removeChild(ta);
+  }
+  setTimeout(() => { btn.textContent = original; }, 1800);
+});
+</script>
+</body>
+</html>
